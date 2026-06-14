@@ -2,12 +2,12 @@
 
 ## 🎯 Problem Statement
 Predict whether a patient is at risk of heart disease based on medical attributes 
-such as Age,Sex,ChestPainType,RestingBP,Cholesterol,FastingBS,RestingECG,MaxHR,ExerciseAngina,Oldpeak,ST_Slope
+such as Age, Sex, ChestPainType, RestingBP, Cholesterol, FastingBS, RestingECG, MaxHR, ExerciseAngina, Oldpeak, ST_Slope
 
 ## 📊 Dataset
 - Source: [UCI Heart Disease Dataset(Kaggle)]
 - Size: 919 rows, 12 columns
-- Features: Age,Sex,ChestPainType,RestingBP,Cholesterol,FastingBS,RestingECG,MaxHR,ExerciseAngina,Oldpeak,ST_Slope
+- Features: Age, Sex, ChestPainType, RestingBP, Cholesterol, FastingBS, RestingECG, MaxHR, ExerciseAngina, Oldpeak, ST_Slope
 
 ## 🛠️ Tech Stack
 Python, Pandas, NumPy, Scikit-learn, Matplotlib/Seaborn, Jupyter Notebook, google colabe
