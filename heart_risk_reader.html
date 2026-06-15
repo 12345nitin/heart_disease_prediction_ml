@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Heart Risk Reader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#080D14;
+    --panel:#101A2B;
+    --panel-2:#16223A;
+    --field:#1B2A45;
+    --line:#28394F;
+    --paper:#ECF2FA;
+    --mist:#7E91AC;
+    --trace:#5EEAD4;
+    --amber:#F5B860;
+    --coral:#FB7C6A;
+    --ecg-speed:3.6s;
+    --ecg-color:#5EEAD4;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background-color:var(--ink);
+    background-image: radial-gradient(circle at 1px 1px, rgba(94,234,212,0.07) 1px, transparent 0);
+    background-size: 26px 26px;
+    color:var(--paper);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+
+  h1,h2,h3{
+    font-family:'Space Grotesk',sans-serif;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  a{color:var(--trace);}
+
+  .page{max-width:1280px;margin:0 auto;padding:2.5rem 1.5rem 4rem;}
+
+  /* ---------- header ---------- */
+  .header-inner{max-width:760px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.78rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--trace);
+    margin:0 0 0.75rem;
+  }
+  h1{
+    font-size:clamp(2.2rem, 5vw, 3.4rem);
+    font-weight:600;
+    margin-bottom:0.85rem;
+  }
+  .lede{
+    color:var(--mist);
+    font-size:1.05rem;
+    max-width:620px;
+    margin:0;
+  }
+  .lede strong{color:var(--paper);}
+
+  .ecg-strip{
+    overflow:hidden;
+    width:100%;
+    line-height:0;
+    border-radius:10px;
+  }
+  .ecg-strip svg{display:block;width:100%;height:auto;}
+  .ecg-track{
+    animation: ecg-scroll var(--ecg-speed) linear infinite;
+    fill:none;
+    stroke:var(--ecg-color);
+    stroke-width:2.4;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    transition: stroke 0.6s ease;
+  }
+  @keyframes ecg-scroll{ to{ transform:translateX(-300px); } }
+
+  .header-ecg{
+    margin-top:2.25rem;
+    background:linear-gradient(180deg, rgba(94,234,212,0.05), transparent);
+    border:1px solid var(--line);
+    padding:0.5rem 0;
+  }
+
+  /* ---------- layout ---------- */
+  .layout{
+    display:grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap:1.75rem;
+    margin-top:2.5rem;
+    align-items:start;
+  }
+  @media (max-width: 960px){
+    .layout{grid-template-columns:1fr;}
+    .result-col{position:static;}
+  }
+
+  .form-panels{display:flex;flex-direction:column;gap:1.25rem;}
+  .result-col{
+    display:flex;flex-direction:column;gap:1.25rem;
+    position:sticky;top:2rem;
+  }
+
+  /* ---------- cards ---------- */
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:1.5rem;
+  }
+  .card-head{
+    display:flex;
+    flex-direction:column;
+    gap:0.35rem;
+    margin-bottom:1.25rem;
+  }
+  .card-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.72rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--mist);
+  }
+  .card-head h2{font-size:1.15rem;font-weight:600;}
+
+  /* ---------- fields ---------- */
+  .field{margin-bottom:1.35rem;}
+  .field:last-child{margin-bottom:0;}
+  .field-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:0.5rem;
+    margin-bottom:0.5rem;
+  }
+  .field label{
+    font-size:0.92rem;
+    font-weight:600;
+    color:var(--paper);
+  }
+  .field .field-help{
+    display:block;
+    font-size:0.8rem;
+    color:var(--mist);
+    margin-top:0.35rem;
+  }
+  .field-value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.92rem;
+    color:var(--trace);
+    background:var(--field);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:0.1rem 0.5rem;
+    min-width:3.2rem;
+    text-align:center;
+  }
+
+  /* range input */
+  input[type=range]{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:4px;
+    background:var(--line);
+    border-radius:2px;
+    outline:none;
+    margin:0.4rem 0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:16px;height:16px;border-radius:50%;
+    background:var(--trace);
+    box-shadow:0 0 0 5px rgba(94,234,212,0.16);
+    cursor:pointer;
+    border:none;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px;height:16px;border-radius:50%;
+    background:var(--trace);border:none;
+    box-shadow:0 0 0 5px rgba(94,234,212,0.16);
+    cursor:pointer;
+  }
+  input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--paper);outline-offset:2px;}
+
+  /* segmented control */
+  .segmented{
+    display:flex;
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .seg-btn{
+    flex:1;
+    padding:0.6rem 0.75rem;
+    background:var(--field);
+    color:var(--mist);
+    border:none;
+    font:inherit;
+    font-size:0.9rem;
+    cursor:pointer;
+    transition:background 0.15s, color 0.15s;
+  }
+  .seg-btn + .seg-btn{border-left:1px solid var(--line);}
+  .seg-btn.active{background:var(--trace);color:#062321;font-weight:600;}
+  .seg-btn:focus-visible{outline:2px solid var(--trace);outline-offset:-2px;}
+
+  /* select */
+  select{
+    width:100%;
+    background-color:var(--field);
+    color:var(--paper);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:0.65rem 2.2rem 0.65rem 0.8rem;
+    font:inherit;
+    font-size:0.92rem;
+    appearance:none;
+    -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237E91AC' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 0.7rem center;
+    background-size:1.1rem;
+    cursor:pointer;
+  }
+  select:focus-visible{outline:2px solid var(--trace);outline-offset:2px;}
+
+  /* ---------- run button ---------- */
+  .run-btn{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:1rem;
+    font-weight:600;
+    color:#062321;
+    background:var(--trace);
+    border:none;
+    border-radius:10px;
+    padding:0.95rem 1.5rem;
+    cursor:pointer;
+    transition:transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow:0 8px 24px -12px rgba(94,234,212,0.7);
+  }
+  .run-btn:hover{transform:translateY(-1px);}
+  .run-btn:active{transform:translateY(0px);}
+  .run-btn:focus-visible{outline:2px solid var(--paper);outline-offset:2px;}
+
+  /* ---------- result card ---------- */
+  .result-card{display:flex;flex-direction:column;gap:1.1rem;}
+  .result-head{
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .result-head h2{font-size:1.05rem;font-weight:600;}
+  .live{
+    display:flex;align-items:center;gap:0.45rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;
+    color:var(--mist);
+  }
+  .live-dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--ecg-color);
+    box-shadow:0 0 0 0 rgba(94,234,212,0.6);
+    animation:pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(94,234,212,0.45);}
+    50%{box-shadow:0 0 0 6px rgba(94,234,212,0);}
+  }
+
+  .result-ecg{border:1px solid var(--line);background:var(--ink);}
+
+  .readout{
+    display:flex;align-items:baseline;gap:0.4rem;
+  }
+  .prob-value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:3.4rem;
+    font-weight:600;
+    color:var(--paper);
+    line-height:1;
+  }
+  .prob-suffix{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:1.4rem;
+    color:var(--mist);
+  }
+  .prob-label{
+    margin:0;color:var(--mist);font-size:0.88rem;
+  }
+  .risk-band{
+    margin:0;
+    padding:0.85rem 1rem;
+    border-radius:10px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    font-size:0.92rem;
+    border-left:3px solid var(--ecg-color);
+    transition:border-color 0.6s ease;
+  }
+
+  /* ---------- breakdown ---------- */
+  .breakdown-card h3{font-size:1.05rem;font-weight:600;margin-bottom:0.3rem;}
+  .hint{color:var(--mist);font-size:0.85rem;margin:0 0 1.1rem;}
+  .breakdown{display:flex;flex-direction:column;gap:0.85rem;}
+  .breakdown-row{display:grid;grid-template-columns:1fr;gap:0.3rem;}
+  .breakdown-top{display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;}
+  .breakdown-label{font-size:0.86rem;color:var(--paper);}
+  .breakdown-value{font-size:0.8rem;color:var(--mist);}
+  .bar-track{
+    position:relative;height:6px;border-radius:3px;
+    background:var(--field);
+    overflow:hidden;
+  }
+  .bar-mid{
+    position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line);
+  }
+  .bar-fill{
+    position:absolute;top:0;bottom:0;border-radius:3px;
+  }
+  .bar-fill.pos{background:var(--coral);left:50%;}
+  .bar-fill.neg{background:var(--trace);right:50%;}
+  .empty-note{color:var(--mist);font-size:0.88rem;}
+
+  /* ---------- footer ---------- */
+  .footer{margin-top:3rem;border-top:1px solid var(--line);padding-top:1.75rem;}
+  .model-card{
+    display:flex;flex-wrap:wrap;gap:1.75rem;margin-bottom:1.1rem;
+  }
+  .model-card .mono{font-size:1.05rem;color:var(--trace);}
+  .model-card .mist{color:var(--mist);font-size:0.78rem;}
+  .disclaimer{color:var(--mist);font-size:0.82rem;max-width:760px;margin:0;}
+
+  .mist{color:var(--mist);}
+
+  @media (prefers-reduced-motion: reduce){
+    .ecg-track{animation:none;}
+    .live-dot{animation:none;}
+    .run-btn{transition:none;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="header-inner">
+      <p class="eyebrow">11-signal cardiac screening &middot; logistic regression</p>
+      <h1>Heart Risk Reader</h1>
+      <p class="lede">Enter a patient's clinical signals below and this reads them the way the trained model does &mdash; estimating the <strong>likelihood of heart disease</strong> from a logistic regression model trained on <strong>918 patient records</strong> (85.3% test accuracy).</p>
+    </div>
+    <div class="ecg-strip header-ecg" aria-hidden="true">
+      <svg viewBox="0 0 2400 100" width="2400" height="100" preserveAspectRatio="none">
+        <defs>
+          <filter id="glow-header" x="-20%" y="-60%" width="140%" height="220%">
+            <feGaussianBlur stdDeviation="2" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <path id="ecgPathHeader" d="M0,60 L52,60 C60,60 64,50 70,50 C76,50 80,60 90,60 L118,60 L126,68 L136,8 L146,82 L158,60 L186,60 C204,60 216,42 230,42 C244,42 256,60 274,60 L300,60"/>
+        </defs>
+        <g class="ecg-track" filter="url(#glow-header)">
+          <use href="#ecgPathHeader" x="0"/>
+          <use href="#ecgPathHeader" x="300"/>
+          <use href="#ecgPathHeader" x="600"/>
+          <use href="#ecgPathHeader" x="900"/>
+          <use href="#ecgPathHeader" x="1200"/>
+          <use href="#ecgPathHeader" x="1500"/>
+          <use href="#ecgPathHeader" x="1800"/>
+          <use href="#ecgPathHeader" x="2100"/>
+        </g>
+      </svg>
+    </div>
+  </header>
+
+  <main class="layout">
+    <form class="form-panels" id="screeningForm">
+
+      <!-- Demographics -->
+      <section class="card">
+        <div class="card-head">
+          <span class="card-tag">Signal group 01</span>
+          <h2>Demographics</h2>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label for="age">Age</label>
+            <output class="field-value mono" id="ageVal">54</output>
+          </div>
+          <input type="range" id="age" min="20" max="90" step="1" value="54">
+          <span class="field-help">Patient age in years.</span>
+        </div>
+
+        <div class="field">
+          <label>Sex</label>
+          <div class="segmented" data-name="sex" style="margin-top:0.5rem;">
+            <button type="button" class="seg-btn" data-value="0">Female</button>
+            <button type="button" class="seg-btn active" data-value="1">Male</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Vitals & labs -->
+      <section class="card">
+        <div class="card-head">
+          <span class="card-tag">Signal group 02</span>
+          <h2>Vitals &amp; labs</h2>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label for="restingBP">Resting blood pressure</label>
+            <output class="field-value mono" id="restingBPVal">130</output>
+          </div>
+          <input type="range" id="restingBP" min="80" max="200" step="1" value="130">
+          <span class="field-help">Systolic, in mm Hg, at rest.</span>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label for="cholesterol">Serum cholesterol</label>
+            <output class="field-value mono" id="cholesterolVal">220</output>
+          </div>
+          <input type="range" id="cholesterol" min="100" max="450" step="1" value="220">
+          <span class="field-help">Total cholesterol, in mg/dL.</span>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label for="maxHR">Max heart rate</label>
+            <output class="field-value mono" id="maxHRVal">140</output>
+          </div>
+          <input type="range" id="maxHR" min="60" max="210" step="1" value="140">
+          <span class="field-help">Highest heart rate reached during exercise (bpm).</span>
+        </div>
+
+        <div class="field">
+          <label>Fasting blood sugar</label>
+          <div class="segmented" data-name="fastingBS" style="margin-top:0.5rem;">
+            <button type="button" class="seg-btn active" data-value="0">120 mg/dL or below</button>
+            <button type="button" class="seg-btn" data-value="1">Above 120 mg/dL</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cardiac signals -->
+      <section class="card">
+        <div class="card-head">
+          <span class="card-tag">Signal group 03</span>
+          <h2>Cardiac signals</h2>
+        </div>
+
+        <div class="field">
+          <label for="chestPain">Chest pain type</label>
+          <div style="margin-top:0.5rem;">
+            <select id="chestPain">
+              <option value="ASY" selected>Asymptomatic</option>
+              <option value="ATA">Atypical angina</option>
+              <option value="NAP">Non-anginal pain</option>
+              <option value="TA">Typical angina</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="restingECG">Resting ECG</label>
+          <div style="margin-top:0.5rem;">
+            <select id="restingECG">
+              <option value="Normal" selected>Normal</option>
+              <option value="ST">ST-T wave abnormality</option>
+              <option value="LVH">Left ventricular hypertrophy</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Exercise-induced angina</label>
+          <div class="segmented" data-name="exerciseAngina" style="margin-top:0.5rem;">
+            <button type="button" class="seg-btn active" data-value="1">No</button>
+            <button type="button" class="seg-btn" data-value="0">Yes</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label for="oldpeak">ST depression (Oldpeak)</label>
+            <output class="field-value mono" id="oldpeakVal">0.8</output>
+          </div>
+          <input type="range" id="oldpeak" min="-2" max="6.5" step="0.1" value="0.8">
+          <span class="field-help">ST depression induced by exercise relative to rest.</span>
+        </div>
+
+        <div class="field">
+          <label for="stSlope">ST slope</label>
+          <div style="margin-top:0.5rem;">
+            <select id="stSlope">
+              <option value="Flat" selected>Flat</option>
+              <option value="Up">Upsloping</option>
+              <option value="Down">Downsloping</option>
+            </select>
+          </div>
+          <span class="field-help">Slope of the ST segment at peak exercise.</span>
+        </div>
+      </section>
+
+      <button type="submit" class="run-btn">Run screening</button>
+    </form>
+
+    <aside class="result-col">
+      <section class="card result-card">
+        <div class="result-head">
+          <h2>Reading</h2>
+          <span class="live"><span class="live-dot"></span>live</span>
+        </div>
+
+        <div class="ecg-strip result-ecg" aria-hidden="true">
+          <svg viewBox="0 0 1500 100" width="1500" height="100" preserveAspectRatio="none">
+            <defs>
+              <filter id="glow-result" x="-20%" y="-60%" width="140%" height="220%">
+                <feGaussianBlur stdDeviation="2" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <path id="ecgPathResult" d="M0,60 L52,60 C60,60 64,50 70,50 C76,50 80,60 90,60 L118,60 L126,68 L136,8 L146,82 L158,60 L186,60 C204,60 216,42 230,42 C244,42 256,60 274,60 L300,60"/>
+            </defs>
+            <g class="ecg-track" id="resultTrack" filter="url(#glow-result)">
+              <use href="#ecgPathResult" x="0"/>
+              <use href="#ecgPathResult" x="300"/>
+              <use href="#ecgPathResult" x="600"/>
+              <use href="#ecgPathResult" x="900"/>
+              <use href="#ecgPathResult" x="1200"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="readout">
+          <span class="prob-value mono" id="probValue">&mdash;</span>
+          <span class="prob-suffix">%</span>
+        </div>
+        <p class="prob-label">estimated likelihood of heart disease</p>
+        <p class="risk-band" id="riskBand">Set the signals on the left, then run the screening.</p>
+      </section>
+
+      <section class="card breakdown-card">
+        <h3>Signal breakdown</h3>
+        <p class="hint">How this patient's values compare with the average patient in the training data. Coral pulls the reading toward heart disease, teal pulls it away.</p>
+        <div id="breakdown" class="breakdown">
+          <p class="empty-note">Run a screening to see which signals matter most for this patient.</p>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <div class="model-card">
+      <div><div class="mono">Logistic Regression</div><div class="mist">model type</div></div>
+      <div><div class="mono">85.3%</div><div class="mist">test accuracy</div></div>
+      <div><div class="mono">918</div><div class="mist">patient records</div></div>
+      <div><div class="mono">16</div><div class="mist">input signals</div></div>
+    </div>
+    <p class="disclaimer">Built for a machine learning class project on the Heart Failure Prediction dataset. This is an educational tool, not a medical device &mdash; it does not diagnose conditions and shouldn't inform real health decisions.</p>
+  </footer>
+
+</div>
+
+<script>
+  // ---- Model coefficients (from trained LogisticRegression) ----
+  const COEF = {
+    Age: 0.01711736,
+    Sex: 1.18932737,
+    RestingBP: 0.00199709,
+    Cholesterol: -0.00486561,
+    FastingBS: 0.94353093,
+    MaxHR: -0.00417282,
+    ExerciseAngina: -1.05432003,
+    Oldpeak: 0.4836523,
+    RestingECG_Normal: -0.20265599,
+    RestingECG_ST: -0.42238346,
+    ST_Slope_Down: -0.0583392,
+    ST_Slope_Flat: 1.19683209,
+    ST_Slope_Up: -1.15172162,
+    ChestPainType_ASY: 1.04121278,
+    ChestPainType_ATA: -0.41639083,
+    ChestPainType_NAP: -0.42426456
+  };
+  const INTERCEPT = -0.56172213;
+
+  // Average feature values across the 918-record training set
+  const MEANS = {
+    Age: 53.5109, Sex: 0.7898, RestingBP: 132.3965, Cholesterol: 198.7996,
+    FastingBS: 0.2331, MaxHR: 136.8094, ExerciseAngina: 0.5959, Oldpeak: 0.72,
+    RestingECG_Normal: 0.6013, RestingECG_ST: 0.1939, ST_Slope_Down: 0.0686,
+    ST_Slope_Flat: 0.5011, ST_Slope_Up: 0.4303, ChestPainType_ASY: 0.5403,
+    ChestPainType_ATA: 0.1885, ChestPainType_NAP: 0.2211
+  };
+
+  const LABELS = {
+    Age: "Age",
+    Sex: "Sex: male",
+    RestingBP: "Resting blood pressure",
+    Cholesterol: "Serum cholesterol",
+    FastingBS: "Fasting blood sugar above 120",
+    MaxHR: "Max heart rate",
+    ExerciseAngina: "No exercise-induced angina",
+    Oldpeak: "ST depression (Oldpeak)",
+    RestingECG_Normal: "Resting ECG: Normal",
+    RestingECG_ST: "Resting ECG: ST-T abnormality",
+    ST_Slope_Down: "ST slope: Downsloping",
+    ST_Slope_Flat: "ST slope: Flat",
+    ST_Slope_Up: "ST slope: Upsloping",
+    ChestPainType_ASY: "Chest pain: Asymptomatic",
+    ChestPainType_ATA: "Chest pain: Atypical angina",
+    ChestPainType_NAP: "Chest pain: Non-anginal pain"
+  };
+
+  // ---- ECG waveform shapes ----
+  const ECG = {
+    low:  "M0,60 L52,60 C60,60 64,50 70,50 C76,50 80,60 90,60 L118,60 L126,68 L136,8 L146,82 L158,60 L186,60 C204,60 216,42 230,42 C244,42 256,60 274,60 L300,60",
+    mid:  "M0,60 L52,60 C60,60 64,50 70,50 C76,50 80,60 90,60 L118,60 L126,68 L136,8 L146,82 L158,68 L186,68 C204,68 214,52 226,52 C238,52 250,60 274,60 L300,60",
+    high: "M0,60 L44,60 C50,60 53,52 58,52 C63,52 66,60 74,60 L100,60 L107,70 L116,4 L125,84 L136,72 L168,72 C182,72 192,58 202,58 L222,60 L238,42 L250,78 L262,60 L300,60"
+  };
+
+  // ---- State for segmented controls ----
+  const segState = { sex: 1, fastingBS: 0, exerciseAngina: 1 };
+
+  document.querySelectorAll(".segmented").forEach(group => {
+    const name = group.dataset.name;
+    group.querySelectorAll(".seg-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        group.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        segState[name] = Number(btn.dataset.value);
+        if (hasRun) compute();
+      });
+    });
+  });
+
+  // ---- Range input live readouts ----
+  const ranges = [
+    { id: "age", out: "ageVal" },
+    { id: "restingBP", out: "restingBPVal" },
+    { id: "cholesterol", out: "cholesterolVal" },
+    { id: "maxHR", out: "maxHRVal" },
+    { id: "oldpeak", out: "oldpeakVal" }
+  ];
+  ranges.forEach(r => {
+    const input = document.getElementById(r.id);
+    const out = document.getElementById(r.out);
+    input.addEventListener("input", () => {
+      out.textContent = input.value;
+      if (hasRun) compute();
+    });
+  });
+
+  // ---- Selects ----
+  ["chestPain", "restingECG", "stSlope"].forEach(id => {
+    document.getElementById(id).addEventListener("change", () => { if (hasRun) compute(); });
+  });
+
+  function getFeatures(){
+    const f = {};
+    f.Age = Number(document.getElementById("age").value);
+    f.Sex = segState.sex;
+    f.RestingBP = Number(document.getElementById("restingBP").value);
+    f.Cholesterol = Number(document.getElementById("cholesterol").value);
+    f.FastingBS = segState.fastingBS;
+    f.MaxHR = Number(document.getElementById("maxHR").value);
+    f.ExerciseAngina = segState.exerciseAngina;
+    f.Oldpeak = Number(document.getElementById("oldpeak").value);
+
+    const ecg = document.getElementById("restingECG").value;
+    f.RestingECG_Normal = ecg === "Normal" ? 1 : 0;
+    f.RestingECG_ST = ecg === "ST" ? 1 : 0;
+
+    const slope = document.getElementById("stSlope").value;
+    f.ST_Slope_Down = slope === "Down" ? 1 : 0;
+    f.ST_Slope_Flat = slope === "Flat" ? 1 : 0;
+    f.ST_Slope_Up = slope === "Up" ? 1 : 0;
+
+    const cpt = document.getElementById("chestPain").value;
+    f.ChestPainType_ASY = cpt === "ASY" ? 1 : 0;
+    f.ChestPainType_ATA = cpt === "ATA" ? 1 : 0;
+    f.ChestPainType_NAP = cpt === "NAP" ? 1 : 0;
+
+    return f;
+  }
+
+  function sigmoid(z){ return 1 / (1 + Math.exp(-z)); }
+
+  const resultTrack = document.getElementById("resultTrack");
+  const probValue = document.getElementById("probValue");
+  const riskBand = document.getElementById("riskBand");
+  const breakdownEl = document.getElementById("breakdown");
+
+  let hasRun = false;
+
+  function setEcg(level){
+    const path = document.getElementById("ecgPathResult");
+    if (level === "low"){
+      path.setAttribute("d", ECG.low);
+      resultTrack.style.setProperty("--ecg-color", "var(--trace)");
+      document.querySelector(".result-ecg .ecg-track").style.setProperty("--ecg-speed", "3.6s");
+    } else if (level === "mid"){
+      path.setAttribute("d", ECG.mid);
+      resultTrack.style.setProperty("--ecg-color", "var(--amber)");
+      document.querySelector(".result-ecg .ecg-track").style.setProperty("--ecg-speed", "2.4s");
+    } else {
+      path.setAttribute("d", ECG.high);
+      resultTrack.style.setProperty("--ecg-color", "var(--coral)");
+      document.querySelector(".result-ecg .ecg-track").style.setProperty("--ecg-speed", "1.4s");
+    }
+    document.querySelector(".result-ecg .ecg-track").style.stroke = "var(--ecg-color)";
+  }
+
+  function compute(){
+    const f = getFeatures();
+    let z = INTERCEPT;
+    for (const key in COEF){ z += COEF[key] * f[key]; }
+    const prob = sigmoid(z);
+    const pct = (prob * 100).toFixed(1);
+
+    probValue.textContent = pct;
+
+    let level, bandText, bandColor;
+    if (prob < 0.35){
+      level = "low";
+      bandColor = "var(--trace)";
+      bandText = "Low likelihood &mdash; this signal pattern broadly resembles lower-risk patients in the training data.";
+    } else if (prob < 0.65){
+      level = "mid";
+      bandColor = "var(--amber)";
+      bandText = "Borderline &mdash; this signal pattern sits between the higher- and lower-risk groups in the training data.";
+    } else {
+      level = "high";
+      bandColor = "var(--coral)";
+      bandText = "Elevated likelihood &mdash; this signal pattern broadly resembles higher-risk patients in the training data.";
+    }
+    riskBand.innerHTML = bandText;
+    riskBand.style.borderLeftColor = bandColor;
+    setEcg(level);
+
+    // ---- Breakdown vs. average patient ----
+    const contributions = Object.keys(COEF).map(key => ({
+      key,
+      value: COEF[key] * (f[key] - MEANS[key])
+    }));
+    contributions.sort((a,b) => Math.abs(b.value) - Math.abs(a.value));
+    const top = contributions.slice(0, 6);
+    const maxAbs = Math.max(...contributions.map(c => Math.abs(c.value)), 0.0001);
+
+    breakdownEl.innerHTML = "";
+    top.forEach(c => {
+      const row = document.createElement("div");
+      row.className = "breakdown-row";
+
+      const topLine = document.createElement("div");
+      topLine.className = "breakdown-top";
+
+      const label = document.createElement("span");
+      label.className = "breakdown-label";
+      label.textContent = LABELS[c.key];
+
+      const val = document.createElement("span");
+      val.className = "breakdown-value mono";
+      val.textContent = (c.value >= 0 ? "+" : "") + c.value.toFixed(2);
+
+      topLine.appendChild(label);
+      topLine.appendChild(val);
+
+      const track = document.createElement("div");
+      track.className = "bar-track";
+      const mid = document.createElement("div");
+      mid.className = "bar-mid";
+      const fill = document.createElement("div");
+      fill.className = "bar-fill " + (c.value >= 0 ? "pos" : "neg");
+      const pct2 = Math.min(Math.abs(c.value) / maxAbs * 50, 50);
+      fill.style.width = pct2 + "%";
+      track.appendChild(mid);
+      track.appendChild(fill);
+
+      row.appendChild(topLine);
+      row.appendChild(track);
+      breakdownEl.appendChild(row);
+    });
+
+    hasRun = true;
+  }
+
+  document.getElementById("screeningForm").addEventListener("submit", e => {
+    e.preventDefault();
+    compute();
+  });
+</script>
+</body>
+</html>
